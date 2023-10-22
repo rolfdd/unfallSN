@@ -1,7 +1,175 @@
 <!DOCTYPE html>
 <html>
-<body>
-<h1>Hello World</h1>
-<p>I'm hosted with GitHub Pages.</p>
-</body>
+	<head>
+		<title>Pivot Demo</title>
+		<!-- 
+			CSS-Selektoren a la "li[class^='axis']" -> https://www.w3schools.com/css/css_attribute_selectors.asp
+			https://stackoverflow.com/questions/4106809/how-can-i-change-an-elements-text-without-changing-its-child-elements
+		-->
+		<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.2/jquery-ui.min.js"></script>
+		<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/pivottable/2.23.0/pivot.min.css">
+		<script type="text/javascript" src="https://www.unpkg.com/pivottable@2.23.0/dist/pivot.js"></script>
+		
+		<style>
+			body {
+				font-family: Roboto;
+				display: grid;
+				grid-template-columns: auto 1fr;
+				grid-template-rows: 1fr 1fr;
+			}
+			#Test1 {
+				background-color: lime;
+			}
+			#Test2 {
+				background-color: green;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="output1"></div>
+		<div id="output2"></div>
+		<div id="Test1"></div>
+		<div id="Test2"></div>
+	<script>
+										//+++ Beispieldaten +++
+		const Datensatz = [
+			["A","B","C","D","E"],
+			[16,1,8,2,0],
+			[16,1,9,1,1],
+			[17,2,23,0,0],
+			[17,3,6,1,1],
+			[15,12,6,2,1]
+		];
+										//+++ Ersatztexte +++
+		const objErsatztext = {
+			A:	["Jahr","Unfalljahr","Langer Erklärungstext: Die Unfalldaten liegen für die Jahre 2016 bis 2022 vor.",
+						{
+							15:[2015,"Jahr 2015"],
+							16:[2016,"Jahr 2016"],
+							17:[2017,"Jahr 2017"],
+							18:[2018,"Jahr 2018"],
+							19:[2019,"Jahr 2019"],
+							20:[2020,"Jahr 2020"],
+							21:[2021,"Jahr 2021"],
+							22:[2022,"Jahr 2022"]
+						}
+					],
+			B:	["Monat","Unfallmonat","Langer Erklärungstext zum Thema Unfallmonat",
+						{
+							1 :["Jan","Januar"],
+							2 :["Feb","Februar"],
+							3 :["Mrz","März"],
+							4 :["Apr","April"],
+							5 :["Mai","Mai"],
+							6 :["Jun","Juni"],
+							7 :["Jul","Juli"],
+							8 :["Aug","August"],
+							9 :["Sep","September"],
+							10:["Okt","Oktober"],
+							11:["Nov","November"],
+							12:["Dez","Dezember"]
+						}
+					],
+			C:	["Tag","Unfalltag","Langer Erklärungstext zum Thema Unfalltag"],
+			D:	["Rad","Radbeteiligung","Mindestens ein beteiligter Radfahrer"],
+			E:	["Licht","Lichtverhältnisse","Wie waren die Lichtverhältnisse, während der Unfall geschah?"]
+		};
+										//+++ Aufruf pivottable.js mit pivotUI +++
+		$(function(pivotData){
+			$("#output1").pivotUI(Datensatz, {
+				unusedAttrsVertical: true,
+				rows: ["A"],
+			});
+		});
+		
+		$(function(pivotData){
+			$("#output2").pivotUI(Datensatz, {
+				unusedAttrsVertical: true,
+				rows: ["A", "E"],
+				cols: ["B", "D"],
+				onRefresh: function() { 
+					fktTabelleUmbenennen();
+					fktSortableAusschalten();
+					fktMausklick ('click', document.getElementsByClassName("pvtGrandTotal")[0]);
+				},
+			});
+		});
+
+										//+++ Filter und Filterboxen Beschriftung umbenennen +++
+		document.addEventListener('DOMContentLoaded', function() {
+			fktAchsenUmbenennen ();
+			fktFilterboxUmbenennen ();
+		})
+		
+										//+++ Sammlung Funktionen +++
+		
+			function fktAchsenUmbenennen (){
+				let AchseFilter = document.querySelectorAll("#output2 li[class^='axis']");
+				for ( let i=0; i<AchseFilter.length; i++ ) {
+					let txtAchseFilter = AchseFilter[i].querySelector("span.pvtAttr").firstChild;
+					txtAchseFilter.textContent = objErsatztext[txtAchseFilter.textContent][0];
+				};
+			};
+			function fktFilterboxUmbenennen (){
+				let FilterBox = document.querySelectorAll("#output2 .pvtFilterBox");
+				for ( let i=0; i<FilterBox.length; i++ ) {
+					let txtNameFilterbox = FilterBox[i].querySelector("h4 > span:not(.count)");
+					let txtWertFilterbox = FilterBox[i].querySelectorAll(".pvtFilter + span.value");
+											//+++ Teil 1: Filterbox auswählbare Werte umbennen +++
+					if (typeof objErsatztext[txtNameFilterbox.textContent][3] !== "undefined") {
+						for ( let j=0; j<txtWertFilterbox.length; j++ ) {
+							txtWertFilterbox[j].textContent = objErsatztext[txtNameFilterbox.textContent][3][txtWertFilterbox[j].textContent][0];
+						}
+					} 
+											//+++ Teil 2: Filterbox Überschrift umbenennen +++
+					txtNameFilterbox.textContent = objErsatztext[txtNameFilterbox.textContent][1];
+				};
+			};
+			function fktTabelleUmbenennen(){
+										//+++ Tabelle Werte und Achsenbeschriftung umbenennen +++
+					let TabKopf = document.querySelectorAll("#output2 .pvtTable thead tr");
+					let TabWertebereich = document.querySelectorAll("#output2 .pvtTable tbody tr");
+					for ( let i=0; i<TabKopf.length; i++ ) {
+						let TabKopfAchsenText = TabKopf[i].querySelectorAll(".pvtAxisLabel");
+						let TabKopfSpaltenText = TabKopf[i].querySelectorAll(".pvtColLabel");
+										//+++ Teil 1 Spalten - Werte +++
+						if (TabKopfAchsenText.length == 1 && TabKopfSpaltenText.length > 0) {
+							if (typeof objErsatztext[TabKopfAchsenText[0].textContent][3] !== "undefined") {
+								for ( let j=0; j<TabKopfSpaltenText.length; j++ ) {
+									TabKopfSpaltenText[j].textContent = objErsatztext[TabKopfAchsenText[0].textContent][3][TabKopfSpaltenText[j].textContent][0];
+								}
+							}
+						}
+										//+++ Teil 2 Zeilen - Werte +++
+						else {
+							for ( let j=0; j<TabWertebereich.length; j++) {
+								let TabKopfZeilenText = TabWertebereich[j].querySelectorAll("th.pvtRowLabel");
+								for (let k=TabKopfZeilenText.length-1; k>=0; k--) {
+									if (typeof objErsatztext[TabKopfAchsenText[k+TabKopfAchsenText.length-TabKopfZeilenText.length].textContent][3] !== "undefined") {
+										TabKopfZeilenText[k].innerText = objErsatztext[TabKopfAchsenText[k+TabKopfAchsenText.length-TabKopfZeilenText.length].textContent][3][TabKopfZeilenText[k].innerText][0];
+									};
+								};
+							};
+						};
+										//+++ Teil 3 Achsen - Werte +++
+						for ( let j=0; j<TabKopfAchsenText.length; j++) {
+							TabKopfAchsenText[j].textContent = objErsatztext[TabKopfAchsenText[j].textContent][0]
+						};
+					};
+				};
+			function fktSortableAusschalten () {
+				$('.ui-sortable').sortable({disabled: true,});
+			};
+			function fktMausklick(type, elem) {
+				elem.dispatchEvent(new MouseEvent(type, {
+					view: window,
+					bubbles: true,
+					cancelable: true
+				}));
+				return elem;
+			}
+		
+	</script>
+	</body>
 </html>
