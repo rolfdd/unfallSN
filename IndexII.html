@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html>
+<head>
+		<title>Pivot Demo</title>
+		
+				<!--
+													***Diverses für Tudu ***
+					1.) Clickcallback in die Grafik: https://github.com/nicolaskruchten/pivottable/issues/1048
+					2.) Klasse entfernen bei Click: https://stackoverflow.com/questions/51618643/remove-class-name-from-nodelist-when-clicked-on-any-node-from-the-same-nodelist
+					3.) Umbruch erzwingen: https://www.html-seminar.de/css-content-umbruch-erzwingen.htm 
+							oder https://basti1012.de/tutorialscss/index.php?name=flexbox-mauerwerk-layout.php https://codepen.io/tobiasahlin/pen/OGBvqW
+				-->
+		<!-- Leaflet, Geocoder etc. -->
+		<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+		<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+		<!-- external libs from cdnjs -->
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.11/c3.min.css">
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.11/c3.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.2/jquery-ui.min.js"></script>
+		<!-- PivotTable.js-->
+		
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pivottable/2.23.0/pivot.min.css">
+		<!--
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/pivottable/2.23.0/pivot.min.js"></script>
+		-->
+		<script type="text/javascript" src="https://www.unpkg.com/pivottable@2.23.0/dist/pivot.js"></script>
+		
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/pivottable/2.23.0/pivot.de.min.js"></script>
+		<script src="https://www.unpkg.com/pivottable@2.23.0/dist/c3_renderers.js"></script>
+		
+		<!-- Unfalldaten-->
+		<script src="unfallatlas_lokal.csv"></script>
+		
+		<style>
+		* {
+			//border-radius: 0px !important;
+			//box-shadow: none !important;
+		}
+		
+		html, body, #kiste {
+			width: 100%;
+			height: 100%;
+			padding: 0;
+			margin: 0;
+			font-family: Roboto, Verdana, Helvetica, sans-serif;
+			font-size: 14px;
+			font-weight: 300;
+			color: #0a0a0a;
+		}
+		
+		#kiste {
+			display: grid;
+			grid-template-columns: auto 1fr;
+		}
+		
+		#menue, #output {
+			overflow-y: auto;
+		}
+		
+		.leaflet-control-layers label {
+			display: grid;
+			font-size: 14px;
+			font-size: 1em; 
+		}
+		/*
+		input[type="checkbox"], input[type="radio"] {
+//			display: none;
+			visibility: hidden;
+		}
+		
+		.leaflet-control-layers-selector ~ span::before {content: "\2B55 \FE0E \00A0"; font-size: 1.4em;}	
+		.leaflet-control-layers-selector:checked ~ span {color: #EE7F00}
+		.leaflet-control-layers-selector:checked ~ span::before {content: "\2714 \00A0"; color: #EE7F00; font-size: 1.4em; }
+		input[type="checkbox"] ~ span:not(.count)::before {content:"\2610 \00A0"; font-size: 1.4em;}
+		input[type="checkbox"]:checked ~ span:not(.count)::before {content: "\2714 \00A0"; color: #EE7F00; font-size: 1.4em; }
+		*/
+		
+		.pvtRenderer, .pvtAggregator, button {
+			font-family: Roboto, Verdana, Helvetica, sans-serif;
+			font-size: 12px;
+			font-weight: 300;
+			color: #0a0a0a;
+		}
+		
+		.pvtCheckContainer {
+			white-space: normal;
+			overflow-y:auto;
+			max-height: 400px;
+		}
+		
+		.count, .value {
+			font-size:8pt;
+		}
+		
+		.pvtVals{
+			display: none;
+		}
+		/**/
+		.pvtRows.pvtUiCell, .pvtCols.pvtUiCell, .pvtRenderer  {
+			display: none;
+		}
+		
+		.leaflet-control {
+			max-height: 100vh;
+			float: none;
+		}
+		
+		.leaflet-left .leaflet-control {
+			margin-left: 0px;
+			margin-top: 0px;
+		}
+		
+		.pvtAxisContainer li {
+			padding: 2px 0px;
+			cursor: default;
+		}
+		
+		.pvtFilterBox{
+			width: 270px;
+			border: 1px solid silver;
+			background-color: #fff;
+			text-align: center;
+			position: relative;
+			left: 0px !important;
+			top: 0px !important;
+		}
+		
+		.pvtAxisContainer {
+			display: flex;
+			flex-flow: row wrap;
+			border: none;
+			background: none;
+		}
+		
+		li.pvtFilteredAttribute{
+			background-color: #dedede;
+		}
+		
+		.pvtAxisContainer li span.pvtAttr {
+			background: none;
+			border: 1px solid silver;
+		}
+		
+		table.pvtTable tbody tr th, table.pvtTable thead tr th {
+			background-color: #f2f2f2;
+			border: 1px solid silver;
+			font-size: 8pt;
+			font-weight: 300;
+			color: #0a0a0a;
+			padding: 5px;
+		}
+		
+		#accordion {
+			width: 300px;
+			height: auto;
+//			margin: 10px auto;
+		}
+		
+		#accordion .ui-accordion-header {
+			text-align: center; 
+			font-size: 16px;
+			font-weight: 300;
+			border-top: 1px solid #004b7c;
+			border-left: 1px solid #004b7c;
+			border-right: 1px solid #004b7c;
+			background-color: #ccdbe5;
+			margin: 0px;
+			padding: 10px;
+			cursor: pointer;
+		}
+		
+		#accordion .ui-accordion-header:last-of-type {
+			border-bottom: 1px solid #004b7c;
+		}
+		
+		#accordion .ui-accordion-content {
+			background-color: #f2f2f2;
+			border-left: 1px solid silver;
+			border-right: 1px solid silver;
+			border-top: 1px solid #004b7c;
+			border-bottom: 1px solid #f2f2f2;
+			scrollbar-width: thin;
+			scrollbar-color: #004b7c silver;
+		}
+		
+		#accordion .ui-accordion-content:last-of-type {
+			border-top: 1px solid #f2f2f2;
+			border-bottom: 1px solid silver;
+		}
+		
+		#accordion .ui-accordion-content > * {
+//			padding: 10px 20px 10px 20px;
+		}
+
+		</style>
+
+</head>
+<body>
+
+	<div id='kiste'>
+		<div id='menue'></div>
+		<div id="map"></div>
+	</div>
+		<div id="output"></div>
+	<div id="accordion">
+		<h3 id="basis">Basiskarten</h3>
+		<h3 id="themen">Themen</h3>
+		<h3 id="filter">Filter</h3>
+		<div id="accIII"></div>
+		<h3>Tabelle</h3>
+		<div id="tabelle"></div>
+	</div>
+	
+	<script>
+	
+	const objErsatztext = {
+		A:	["ID", "ID"],
+		B:	["Land", "Bundesland",
+					{
+						01:	["SH", "Schleswig-Holstein", "Daten ab 2016"    ],
+						02:	["HH", "Hamburg", "Daten ab 2016"               ],
+						03:	["NI", "Niedersachsen", "Daten ab 2017"         ],
+						04:	["HB", "Bremen", "Daten ab 2016"                ],
+						05:	["NW", "Nordrhein-Westfalen", "Daten ab 2019"   ],
+						06:	["HE", "Hessen", "Daten ab 2016"                ],
+						07:	["RP", "Rheinland-Pfalz", "Daten ab 2017"       ],
+						08:	["BW", "Baden-Württemberg", "Daten ab 2016"     ],
+						09:	["BY", "Bayern", "Daten ab 2016"                ],
+						10:	["SL", "Saarland", "Daten ab 2017"              ],
+						11:	["BE", "Berlin", "Daten ab 2018"                ],
+						12:	["BB", "Brandenburg", "Daten ab 2017"           ],
+						13:	["MV", "Mecklenburg-Vorpommern", "Daten ab 2020"],
+						14:	["SN", "Sachsen", "Daten ab 2016"               ],
+						15:	["SA", "Sachsen-Anhalt", "Daten ab 2017"        ],
+						16:	["TH", "Thüringen", "Daten ab 2019"             ],
+					}
+				],
+		C:	["RegBez", "Regierungsbezirk"],
+		D:	["Kreis", "Landkreis, kreisfreie Stadt",
+					{
+						11:	["C", "Chemnitz"                          ],
+						12:	["DD", "Dresden"                          ],
+						13:	["L", "Leipzig"                           ],
+						21:	["ERZ", "Erzgebirgskreis"                 ],
+						22:	["MS", "Mittelsachsen"                    ],
+						23:	["V", "Vogtlandkreis"                     ],
+						24:	["Z", "Zwickau"                           ],
+						25:	["BZ", "Bautzen"                          ],
+						26:	["GR", "Görlitz"                          ],
+						27:	["MEI", "Meißen"                          ],
+						28:	["SSO", "Sächsische Schweiz-Osterzgebirge"],
+						29:	["LkL", "Landkreis Leipzig"               ],
+						30:	["NS", "Nordsachsen"                      ]
+					}
+				],
+		E:	["Gemeinde", "Gemeinde",
+					{
+					
+					}
+				],
+		F:	["Jahr", "Unfalljahr",
+					{
+						15: ["2015","2015"],
+						16: ["2016","2016"],
+						17: ["2017","2017"],
+						18: ["2018","2018"],
+						19: ["2019","2019"],
+						20: ["2020","2020"],
+						21: ["2021","2021"],
+						22: ["2022","2022"],
+						23: ["2023","2023"],
+						24: ["2024","2024"]
+					}
+		
+				],
+		G:	["Monat","Unfallmonat",
+					{
+						1 :	["Jan",	"Januar"   ],
+						2 :	["Feb",	"Februar"  ],
+						3 :	["Mrz",	"März"     ],
+						4 :	["Apr",	"April"    ],
+						5 :	["Mai",	"Mai"      ],
+						6 :	["Jun",	"Juni"     ],
+						7 :	["Jul",	"Juli"     ],
+						8 :	["Aug",	"August"   ],
+						9 :	["Sep",	"September"],
+						10:	["Okt",	"Oktober"  ],
+						11:	["Nov",	"November" ],
+						12:	["Dez",	"Dezember" ]
+					}
+				],
+		H: ["Tag", "Unfalltag"],
+		I: ["Stunde", "Unfallstunde",
+					{
+						0: ["", "zwischen	0.00 und 	1.00 Uhr "],
+						1: ["", "zwischen	1.00 und 	2.00 Uhr "],
+						2: ["", "zwischen	2.00 und 	3.00 Uhr "],
+						3: ["", "zwischen	3.00 und 	4.00 Uhr "],
+						4: ["", "zwischen	4.00 und 	5.00 Uhr "],
+						5: ["", "zwischen	5.00 und 	6.00 Uhr "],
+						6: ["", "zwischen	6.00 und 	7.00 Uhr "],
+						7: ["", "zwischen	7.00 und 	8.00 Uhr "],
+						8: ["", "zwischen	8.00 und 	9.00 Uhr "],
+						9: ["", "zwischen	9.00 und  10.00 Uhr"],
+					 10: ["", "zwischen 10.00 und 11.00 Uhr "],
+					 11: ["", "zwischen 11.00 und 12.00 Uhr "],
+					 12: ["", "zwischen 12.00 und 13.00 Uhr "],
+					 13: ["", "zwischen 13.00 und 14.00 Uhr "],
+					 14: ["", "zwischen 14.00 und 15.00 Uhr "],
+					 15: ["", "zwischen 15.00 und 16.00 Uhr "],
+					 16: ["", "zwischen 16.00 und 17.00 Uhr "],
+					 17: ["", "zwischen 17.00 und 18.00 Uhr "],
+					 18: ["", "zwischen 18.00 und 19.00 Uhr "],
+					 19: ["", "zwischen 19.00 und 20.00 Uhr "],
+					 20: ["", "zwischen 20.00 und 21.00 Uhr "],
+					 21: ["", "zwischen 21.00 und 22.00 Uhr "],
+					 22: ["", "zwischen 22.00 und 23.00 Uhr "],
+					 23: ["", "zwischen 23.00 und 24.00 Uhr "]
+						
+					}
+		],
+		J: ["Wochentag", "Wochentag",
+				{
+					1:	["So", "Sonntag"   ],
+					2:	["Mo", "Montag"    ],
+					3:	["Di", "Dienstag"  ],
+					4:	["Mi", "Mittwoch"  ],
+					5:	["Do", "Donnerstag"],
+					6:	["Fr", "Freitag"   ],
+					7:	["Sa", "Samstag"   ]
+				}
+			 ],
+		K: ["Schweregrad", "Unfallkategorie",
+				{
+					1: ["mit Getöteten", "Unfall mit Getöteten"              ],
+					2: ["mit Schwerverletzten", "Unfall mit Schwerverletzten"],
+					3: ["mit Leichtverletzten", "Unfall mit Leichtverletzten"]
+				}
+			 ],
+		L: ["Unfallart", "Unfallart",
+				{
+					1:	["Zusammenstoß mit anfahrendem/ anhaltendem/ ruhendem Fahrzeug", " Zusammenstoß mit anderem Fahrzeug, das anfährt, anhält oder im ruhenden Verkehr steht"],
+					2:	["Zusammenstoß mit vorausfahrendem / wartendem Fahrzeug", "Zusammenstoß mit anderem Fahrzeug, das vorausfährt oder wartet"],
+					3:	["Zusammenstoß mit seitlich in gleicher Richtung fahrendem Fahrzeug", "Zusammenstoß mit anderem Fahrzeug, das seitlich in gleicher Richtung fährt"],
+					4:	["Zusammenstoß mit entgegenkommendem Fahrzeug", "Zusammenstoß mit anderem Fahrzeug, das entgegenkommt"],
+					5:	["Zusammenstoß mit einbiegendem/ kreuzendem Fahrzeug", "Zusammenstoß mit anderem Fahrzeug, das einbiegt oder kreuzt"],
+					6:	["Zusammenstoß zwischen Fahrzeug und Fußgänger", "Zusammenstoß zwischen Fahrzeug und Fußgänger"],
+					7:	["Aufprall auf Fahrbahnhindernis", "Aufprall auf ein Hindernis auf der Fahrbahn"],
+					8:	["Abkommen von Fahrbahn nach rechts", "Abkommen von der Fahrbahn nach rechts"],
+					9:	["Abkommen von Fahrbahn nach links", "Abkommen von der Fahrbahn nach links"],
+					0:	["Unfall anderer Art", "Unfall anderer Art"]
+				}
+			 ],
+		M: ["Unfalltyp", "Unfalltyp",
+				{
+					1:	["F","Fahrunfall"                   ],
+					2:	["AB","Abbiegeunfall"                ],
+					3:	["EK","Einbiegen / Kreuzen-Unfall"   ],
+					4:	["ÜS","Überschreiten-Unfall"         ],
+					5:	["RV","Unfall durch ruhenden Verkehr"],
+					6:	["LV","Unfall im Längsverkehr"       ],
+					7:	["SO","sonstiger Unfall"             ]
+				}
+			 ],
+		N: ["Licht", "Lichtverhältnisse",
+				{
+					0:	["","Tageslicht"],
+					1:	["","Dämmerung" ],
+					2:	["","Dunkelheit"]
+				}
+				],
+		O: ["Glätte", "Straßenzustand",
+				{
+					0:	["","trocken"],
+					1:	["","nass/feucht/schlüpfrig" ],
+					2:	["","winterglatt"]
+				}
+				],
+		P: ["Rad","Unfall mit Rad",
+				{
+					0:	["","Unfall ohne Fahrradbeteiligung"],
+					1:	["","Unfall mit Fahrradbeteiligung" ]
+				}
+			 ],
+		Q: ["Pkw", "Unfall mit Pkw",                			
+				{
+					0:	["","Unfall ohne Pkw-Beteiligung"],
+					1:	["","Unfall mit Pkw-Beteiligung" ]
+				}
+		],
+		R: ["Fuß", "Unfall mit Fußgänger",
+				{
+					0:	["","Unfall ohne Fußgängerbeteiligung"],
+					1:	["","Unfall mit Fußgängerbeteiligung" ]
+				}
+			 ],
+		S: ["Krad", "Unfall mit Kraftrad",
+				{
+					0:	["","Unfall ohne Kraftradbeteiligung"],
+					1:	["","Unfall mit Kraftradbeteiligung" ]
+				}
+			 ],
+		T: ["Lkw", "Unfall mit Güterkraftfahrzeug (GKFZ)",
+				{
+					0:	["","Unfall ohne Güterkraftfahrzeugbeteiligung"],
+					1:	["","Unfall mit Güterkraftfahrzeugbeteiligung" ]
+				}
+			 ],
+		U: ["ÖPNV", "Unfall mit Sonstigen",
+				{
+					0:	["","Unfall ohne Beteiligung eines oben nicht genannten Verkehrsmittels"],
+					1:	["","Unfall mit Beteiligung eines oben nicht genannten Verkehrsmittels" ]
+				}
+		],
+		X: ["X"],
+		Y: ["Y"] 
+	};
+	
+		const map = L.map('map', {center: [51.05, 13.74], zoom: 16, zoomControl: false, preferCanvas: true});
+		
+			//***ADFC Datenschutz und Impressum***
+			map.attributionControl.setPrefix('<a href="https://www.adfc-dresden.de/index.php/impressum" target="_blank">Impressum</a> | <a href="https://www.adfc-dresden.de/index.php/datenschutzerklaerung" target="_blank">Datenschutzerklärung</a> | <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a>');
+	
+			//***Basiskarte***
+			const varBasis = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
+				attribution: '<a href="https://carto.com/attributions">CARTO</a> | <a href="https://www.openstreetmap.org/copyright">OpenSteetMap</a> |',
+				maxZoom: 23,
+			}).addTo(map);
+			
+			//***weitere Basislayer*** 	
+			const varLeer = L.tileLayer('', { 
+				maxZoom: 23, 
+				maxNativeZoom: 19,
+				minZoom: 11,
+			});
+	
+			const varLuft = L.tileLayer.wms('https://geodienste.sachsen.de/wms_geosn_rohdop-rgb/guest',{ 
+				layers: "sn_rohdop_020",
+				maxZoom: 23, 
+				maxNativeZoom: 19,
+				minZoom: 11,
+				attribution: '<a href="http://www.landesvermessung.sachsen.de/benutzungshinweise-5557.html">GeoSN</a> <a href="https://www.govdata.de/dl-de/by-2-0">dl-de/by-2-0</a> | ',
+			});
+	
+			const varLuftII = L.tileLayer.wms('https://kommisdd.dresden.de/net3/public/ogc.ashx?NodeId=60&Service=WMS',{ 
+				layers: "L40",
+				maxZoom: 23, 
+				maxNativeZoom: 19,
+				minZoom: 11,
+				attribution: '<a href="opendata.dresden.de">Landeshauptstadt Dresden</a> <a href="https://www.govdata.de/dl-de/by-2-0">dl-de/by-2-0</a> | ',
+			});
+			
+			const varOepnv = L.tileLayer('https://tileserver.memomaps.de/tilegen/{z}/{x}/{y}.png', {
+				maxZoom: 23, 
+				maxNativeZoom: 19,
+				minZoom: 11,
+				attribution: 'Map <a href="https://memomaps.de/">memomaps.de</a> <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+			});
+			
+			const cyclosm = L.tileLayer('https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png', {
+				maxZoom: 23, 
+				maxNativeZoom: 19,
+				minZoom: 11,
+				attribution: '<a href="https://github.com/cyclosm/cyclosm-cartocss-style/releases" title="CyclOSM - Open Bicycle render">CyclOSM</a> | Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+			});
+			
+			const varULayer = L.geoJSON(null, {
+				onEachFeature: fktPopup,
+				pointToLayer: function (data, latlng) {
+					return L.circleMarker(latlng, {
+						'radius':2,
+						'color': "red",
+					});
+				}
+			}).addTo(map);
+		
+		/*** Layer opendata DD - WMS als Overlay ***/
+		let arrDD = [
+			[188, 137, 'Stadtteile'],
+			[189, 138, 'Statistische Bezirke'],
+			[171, 125, 'Straßenknotennetz - Kanten'],
+			[172, 126, 'Straßenknotennetz - Knoten'],
+			[170, 124, 'Straßenbahntrassen']
+		];
+		
+		let overlayMaps = {"Unfälle": varULayer};
+		for (let i=0; i<arrDD.length; i++) {
+			let x=[];
+			x[i] = L.tileLayer.wms("https://kommisdd.dresden.de/net3/public/ogc.ashx?NODEID="+arrDD[i][0]+"&Service=WMS",{ 
+				layers: "L"+arrDD[i][1], 
+				format: 'image/png',
+				transparent: true,
+				attribution: '',
+			});
+			overlayMaps[arrDD[i][2]] = x[i];
+		};
+	//***Layercontrol***	
+		let baseMaps = {
+			"ohne Basiskarte": varLeer,
+			"Carto Positron": varBasis,
+			"Luftbild Sachsen": varLuft,
+			"Luftbild Dresden": varLuftII,
+			"ÖPNV (aus OSM)": varOepnv,
+			"Rad (aus OSM)": cyclosm,
+		};
+		let varLayerCtrI = L.control.layers(baseMaps,0,{collapsed:false}).addTo(map);
+		let varLayerCtrII = L.control.layers(0,overlayMaps,{collapsed:false}).addTo(map);
+		basis.insertAdjacentElement("afterend", varLayerCtrI.getContainer());
+		themen.insertAdjacentElement("afterend", varLayerCtrII.getContainer());
+		
+	//+++ Pivottable +++
+		const sidebar = L.control({ position: 'topleft'});
+		sidebar.onAdd = function(map){return output};
+		L.DomEvent.disableScrollPropagation(output);
+		L.DomEvent.disableClickPropagation(output);
+		sidebar.addTo(map);
+		/**/
+		let y = sidebar.getContainer();
+		accIII.insertAdjacentElement("afterbegin", y);
+		
+		const acc = document.querySelector("#accordion");
+		menue.prepend(acc);
+		
+		function fktPopup(f, l) {
+			l.bindPopup('<pre>'+JSON.stringify(f.properties,null,' ').replace(/[\{\}"]/g,'')+'</pre>');
+		};
+
+		//***Lokal laden***
+		let csvV;
+		/*
+		//***via Server laden***
+		let csvV;
+		fetch("unfallatlas.csv")
+		.then(function(response){return response.text()})
+		.then(function(text) {
+				x = ('[[' + text.replaceAll('\n','],[') + ']]');
+				y = x.replace(`[[UKREIS,UJAHR,UMONAT,UTAG,USTUNDE,UWOCHENTAG,UKATEGORIE,UART,UTYP,LICHT,USTRZUSTAND,IstRad,IstPKW,IstFuss,IstKrad,IstGkfz,IstSonstig,@lon,@lat],`,`[["Kreis","Jahr","Monat","Tag","Stunde","Wochentag","Unfallschwere","Unfallart","Unfalltyp","Lichtverhaeltnisse","Strassenzustand","Rad","PKW","Fuss","Krad","Lkw","Straba","X","Y"],`);
+				z = y.replace(`,[]]`,`]`); //Fehler: ganz am Ende ist noch mal ein Textumbruch \n
+				q = z.replaceAll(`,,`,`,0,`); //Fehler: 2017 fehlt ist in der Spalte Gkfz nichts (,,), statt Null (,0,)
+				const csvV = JSON.parse(q);
+		*/
+		
+			$(function(){
+				let renderers = $.extend($.pivotUtilities.renderers,
+				$.pivotUtilities.c3_renderers);
+				
+				$("#output").pivotUI(csvV, {
+					unusedAttrsVertical: true,
+					hiddenAttributes: ["X","Y"],
+					inclusions: {
+						D: ["12"],
+						F: ["19", "20", "21", "22"]
+					},
+//					cols: ["D"], 
+//					rows: ["F"],
+					localeStrings: {
+						apply: "Übernehmen",
+						cancel: "Verwerfen",
+					},
+					renderers: {
+						"Tabelle": $.pivotUtilities.renderers["Table"],
+						"Heatmap": $.pivotUtilities.renderers["Heatmap"],
+						"Diagramm": $.pivotUtilities.c3_renderers["Line Chart"],
+					},
+					rendererName: "Tabelle",
+					onRefresh:	function() { 
+						fktTabelleUmbenennen();
+						fktSortableAusschalten();
+						fktMausklick ('click', document.getElementsByClassName("pvtGrandTotal")[0]);
+						const tab = document.querySelector(".pvtTable");
+						tabelle.insertAdjacentElement("afterbegin", tab);
+					},
+					rendererOptions: {
+						c3:{
+							size: {width: window.innerWidth*0.4, height: window.innerHeight*0.6}
+						},
+						//***clickCallback***
+						table: {
+							clickCallback: function(e, value, filters, pivotData){
+								const varUGeojson = 
+								{
+									"type":					"FeatureCollection",
+									"name":					"Unfälle",
+									"crs": 					{"type":"name","properties":{"name":"urn:ogc:def:crs:OGC:1.3:CRS84"}},
+									"features": 		[]
+								};
+								
+								pivotData.forEachMatchingRecord(filters,
+								function(record){
+									varUGeojson.features.push(
+										{"type":"Feature", 
+											"properties": {
+//												"ID": record.A,
+//												"Land": record.B,
+//												"RegBez": record.C,
+												"Kreis": record.D,
+//												"Gemeinde": record.E,
+												"Jahr": record.F,
+												"Monat": record.G,
+												"Tag": record.H,
+												"Stunde": record.I,
+												"Wochentag": record.J,
+												"Unfallschwere": record.K,
+												"Unfallart": record.L,
+												"Unfalltyp": record.M,
+												"Lichtverhältnisse": record.N,
+												"Straßenzustand": record.O,
+												"Rad": record.P,
+												"Pkw": record.Q,
+												"Fuß": record.R,
+												"Krad": record.S,
+												"Lkw": record.T,
+												"Straba/ Sonstige": record.U,
+											}, 
+											"geometry": {
+												"type": "Point",
+												"coordinates":	[record.X, record.Y]
+											}
+										}
+									)
+								});
+								varULayer.clearLayers();
+								varULayer.addData(varUGeojson);
+								map.fitBounds(varULayer.getBounds());
+							},
+						},
+					},
+				},
+			false,
+			"de"
+				);
+			});
+										//+++ Nachbearbeitung Datensatz +++
+		document.addEventListener('DOMContentLoaded', function(){
+			x = ('[[' + CSV.replaceAll('\n','],[') + ']]');
+			y = x.replace(`[[UKREIS,UJAHR,UMONAT,UTAG,USTUNDE,UWOCHENTAG,UKATEGORIE,UART,UTYP,LICHT,USTRZUSTAND,IstRad,IstPKW,IstFuss,IstKrad,IstGkfz,IstSonstig,@lon,@lat],`,`[["D","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","X","Y"],`);
+			z = y.replace(`,[]]`,`]`);
+			q = z.replaceAll(`,,`,`,0,`);
+			csvV = JSON.parse(q);
+		});
+		
+			function fktTabelleUmbenennen(){
+										//+++ Tabelle Werte und Achsenbeschriftung umbenennen +++
+					let TabKopf = document.querySelectorAll("#output .pvtTable thead tr");
+					let TabWertebereich = document.querySelectorAll("#output .pvtTable tbody tr");
+					for ( let i=0; i<TabKopf.length; i++ ) {
+						let TabKopfAchsenText = TabKopf[i].querySelectorAll(".pvtAxisLabel");
+						let TabKopfSpaltenText = TabKopf[i].querySelectorAll(".pvtColLabel");
+										//+++ Teil 1 Spalten - Werte +++
+						if (TabKopfAchsenText.length == 1 && TabKopfSpaltenText.length > 0) {
+							if (typeof objErsatztext[TabKopfAchsenText[0].textContent][2] !== "undefined") {
+								for ( let j=0; j<TabKopfSpaltenText.length; j++ ) {
+									TabKopfSpaltenText[j].textContent = objErsatztext[TabKopfAchsenText[0].textContent][2][TabKopfSpaltenText[j].textContent][0];
+								}
+							}
+						}
+										//+++ Teil 2 Zeilen - Werte +++
+						else {
+							for ( let j=0; j<TabWertebereich.length; j++) {
+								let TabKopfZeilenText = TabWertebereich[j].querySelectorAll("th.pvtRowLabel");
+								for (let k=TabKopfZeilenText.length-1; k>=0; k--) {
+									if (typeof objErsatztext[TabKopfAchsenText[k+TabKopfAchsenText.length-TabKopfZeilenText.length].textContent][2] !== "undefined") {
+										TabKopfZeilenText[k].innerText = objErsatztext[TabKopfAchsenText[k+TabKopfAchsenText.length-TabKopfZeilenText.length].textContent][2][TabKopfZeilenText[k].innerText][0];
+									};
+								};
+							};
+						};
+										//+++ Teil 3 Achsen - Werte +++
+						for ( let j=0; j<TabKopfAchsenText.length; j++) {
+							TabKopfAchsenText[j].textContent = objErsatztext[TabKopfAchsenText[j].textContent][0]
+						};
+					};
+				};
+			function fktSortableAusschalten () {
+				$('.ui-sortable').sortable({disabled: true,});
+			};
+			function fktMausklick(type, elem) {
+				elem.dispatchEvent(new MouseEvent(type, {
+					view: window,
+					bubbles: true,
+					cancelable: true
+				}));
+				return elem;
+			};
+			
+	$(function() {
+		$("#accordion").accordion({
+			animate: 200,
+			active: 2,
+			collapsible: true,
+			heightStyle: "content"
+		});
+									//+++ Filter und Filterboxen Beschriftung umbenennen +++
+		let AchseFilter = document.querySelectorAll("li[class^='axis']");
+		for ( let i=0; i<AchseFilter.length; i++ ) {
+			let txtAchseFilter = AchseFilter[i].querySelector("span.pvtAttr").firstChild;
+			txtAchseFilter.textContent = objErsatztext[txtAchseFilter.textContent][0];
+		};
+									//+++ Spalte/Zeile für Tabelle festlegen ohne sortable +++
+		$(AchseFilter[2]).wrap( "<div class='pvtRows'></div>" ); //im css: pvtRows display none ... 
+		$(AchseFilter[1]).wrap( "<div class='pvtCols'></div>" );
+		
+		//$("li[class^='axis']").wrapAll( "<div class='wrap' />");
+		
+									//+++ Filterbox +++
+		let FilterBox = document.querySelectorAll("#output .pvtFilterBox");
+		for ( let i=0; i<FilterBox.length; i++ ) {
+			let txtNameFilterbox = FilterBox[i].querySelector("h4 > span:not(.count)");
+			let txtWertFilterbox = FilterBox[i].querySelectorAll(".pvtFilter + span.value");
+									//+++ Teil 1: Filterbox auswählbare Werte umbennen +++
+			if (typeof objErsatztext[txtNameFilterbox.textContent][2] !== "undefined") {
+				for ( let j=0; j<txtWertFilterbox.length; j++ ) {
+					txtWertFilterbox[j].textContent = objErsatztext[txtNameFilterbox.textContent][2][txtWertFilterbox[j].textContent][1];
+				}
+			} 
+									//+++ Teil 2: Filterbox Überschrift umbenennen +++
+			txtNameFilterbox.textContent = objErsatztext[txtNameFilterbox.textContent][1];
+		};
+	});
+										//+++ Filterbox schließen, wenn außerhalb geklickt +++
+	$(document).mouseup(function(e){
+		let container = $(".pvtFilterBox:visible");
+		if(!container.is(e.target) && container.has(e.target).length === 0){
+			container.hide();
+		}
+	});
+	
+	</script>
+</body>
+</html>
