@@ -633,6 +633,7 @@
 				);
 			});
 										//+++ Nachbearbeitung Datensatz +++
+		console.log(CSV);
 		document.addEventListener('DOMContentLoaded', function(){
 			x = ('[[' + CSV.replaceAll('\n','],[') + ']]');
 			y = x.replace(`[[UKREIS,UJAHR,UMONAT,UTAG,USTUNDE,UWOCHENTAG,UKATEGORIE,UART,UTYP,LICHT,USTRZUSTAND,IstRad,IstPKW,IstFuss,IstKrad,IstGkfz,IstSonstig,@lon,@lat],`,`[["D","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","X","Y"],`);
