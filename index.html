@@ -536,7 +536,7 @@
 		.then(function(response){return response.text()})
 		.then(function(text) {
 				x = ('[[' + text.replaceAll('\n','],[') + ']]');
-				y = x.replace(`[[UKREIS,UJAHR,UMONAT,UTAG,USTUNDE,UWOCHENTAG,UKATEGORIE,UART,UTYP,LICHT,USTRZUSTAND,IstRad,IstPKW,IstFuss,IstKrad,IstGkfz,IstSonstig,@lon,@lat],`,`[["Kreis","Jahr","Monat","Tag","Stunde","Wochentag","Unfallschwere","Unfallart","Unfalltyp","Lichtverhaeltnisse","Strassenzustand","Rad","PKW","Fuss","Krad","Lkw","Straba","X","Y"],`);
+				y = x.replace(`[[UKREIS,UJAHR,UMONAT,UTAG,USTUNDE,UWOCHENTAG,UKATEGORIE,UART,UTYP,LICHT,USTRZUSTAND,IstRad,IstPKW,IstFuss,IstKrad,IstGkfz,IstSonstige,@lon,@lat],`,`[["Kreis","Jahr","Monat","Tag","Stunde","Wochentag","Unfallschwere","Unfallart","Unfalltyp","Lichtverhaeltnisse","Strassenzustand","Rad","PKW","Fuss","Krad","Lkw","Straba","X","Y"],`);
 				z = y.replace(`,[]]`,`]`); //Fehler: ganz am Ende ist noch mal ein Textumbruch \n
 				q = z.replaceAll(`,,`,`,0,`); //Fehler: 2017 fehlt ist in der Spalte Gkfz nichts (,,), statt Null (,0,)
 				const csvV = JSON.parse(q);
