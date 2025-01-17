@@ -636,7 +636,7 @@
 		console.log(CSV);
 		document.addEventListener('DOMContentLoaded', function(){
 			x = ('[[' + CSV.replaceAll('\n','],[') + ']]');
-			y = x.replace(`[[UKREIS,UJAHR,UMONAT,UTAG,USTUNDE,UWOCHENTAG,UKATEGORIE,UART,UTYP,LICHT,USTRZUSTAND,IstRad,IstPKW,IstFuss,IstKrad,IstGkfz,IstSonstig,@lon,@lat],`,`[["D","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","X","Y"],`);
+			y = x.replace(`[[UKREIS,UJAHR,UMONAT,UTAG,USTUNDE,UWOCHENTAG,UKATEGORIE,UART,UTYP,LICHT,USTRZUSTAND,IstRad,IstPKW,IstFuss,IstKrad,IstGkfz,IstSonstige,@lon,@lat],`,`[["D","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","X","Y"],`);
 			z = y.replace(`,[]]`,`]`);
 			q = z.replaceAll(`,,`,`,0,`);
 			csvV = JSON.parse(q);
